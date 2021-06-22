@@ -1,0 +1,29 @@
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  image: google/cloud-sdk
+  rules:
+    #don't launch the build itself on deploy-* tags (will have been launched by the commit)
+    - if: '$CI_COMMIT_TAG =~ /^deploy-/'
+      when: never
+    - when: on_success
+  script:
+    - echo $GCP_SERVICE_ACCOUNT > .gcp_credentials.json
+    - gcloud auth activate-service-account --key-file=.gcp_credentials.json
+    - gcloud config set project $GCP_PROJECT
+    - gcloud builds submit --config cloudbuild.yaml --gcs-log-dir=gs://cloudbuild-$GCP_PROJECT/logs --substitutions=SHORT_SHA=$CI_COMMIT_SHORT_SHA --gcs-source-staging-dir=gs://cloudbuild-$GCP_PROJECT/source .
+
+deploy:
+  stage: deploy
+  image: google/cloud-sdk
+  rules:
+    - when: manual
+  script:
+    - echo $GCP_SERVICE_ACCOUNT > .gcp_credentials.json
+    - gcloud auth activate-service-account --key-file=.gcp_credentials.json
+    - gcloud config set project $GCP_PROJECT
+    - gcloud builds submit --config cloudbuild-deploy.yaml --gcs-log-dir=gs://cloudbuild-$GCP_PROJECT/logs --substitutions=SHORT_SHA=$CI_COMMIT_SHORT_SHA --gcs-source-staging-dir=gs://cloudbuild-$GCP_PROJECT/source .
+
