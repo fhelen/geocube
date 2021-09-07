@@ -87,7 +87,7 @@ resource "kubernetes_deployment" "consolidater-autoscaler" {
             "-max=256",
             "-min=0",
             "-pod.cost.path=/termination_cost",
-            "-pod.cost.port=9000"
+            "-pod.cost.port=9000",
           ]
           resources {
             requests = {
@@ -171,7 +171,7 @@ resource "kubernetes_replication_controller" "consolidater" {
           UUID=`uuid`;
           WORKDIR=/local-ssd/$UUID;
           mkdir -p $WORKDIR;
-          /consolidater -project ${var.project-id} -psEventTopic ${google_pubsub_topic.events.name} -psSubscription ${google_pubsub_subscription.consolidations-worker.name} -workdir $WORKDIR || true;
+          /consolidater -cancelledJobs=gs://${google_storage_bucket.geocube-consolidation-cancelled.name} -project ${var.project-id} -psEventTopic ${google_pubsub_topic.events.name} -psSubscription ${google_pubsub_subscription.consolidations-worker.name} -workdir $WORKDIR || true;
           exitcode=$?;
           rm -rf $WORKDIR;
           exit $exitcode;

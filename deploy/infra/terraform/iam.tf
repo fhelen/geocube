@@ -19,6 +19,18 @@ resource "google_storage_bucket_iam_member" "apiserver-bucket-admin" {
   member = "serviceAccount:${google_service_account.geocube-server.email}"
 }
 
+resource "google_storage_bucket_iam_member" "apiserver-bucket-cancelled-admin" {
+  bucket = google_storage_bucket.geocube-consolidation-cancelled.name
+  role = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.geocube-server.email}"
+}
+
+resource "google_storage_bucket_iam_member" "consolidation-bucket-cancelled-admin" {
+  bucket = google_storage_bucket.geocube-consolidation-cancelled.name
+  role = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.consolidater.email}"
+}
+
 resource "google_project_iam_member" "consolidater-pubsub-publisher" {
   role    = "roles/pubsub.publisher"
   member  = "serviceAccount:${google_service_account.consolidater.email}"

@@ -128,6 +128,21 @@ resource "google_storage_bucket" "geocube" {
   location = var.region
   storage_class = "REGIONAL"
 }
+resource "google_storage_bucket" "geocube-consolidation-cancelled" {
+  name = "geocube-consolidation-cancelled-${random_id.bucket_suffix.hex}"
+  location = var.region
+  storage_class = "REGIONAL"
+  force_destroy = true
+
+  lifecycle_rule {
+    action {
+      type = "Delete"
+    }
+    condition {
+      age = 1 # 1 day
+    }
+  }
+}
 resource "google_storage_bucket" "geocube-temp" {
   name     = "geocube-temp-${random_id.bucket_suffix.hex}"
   location = var.region

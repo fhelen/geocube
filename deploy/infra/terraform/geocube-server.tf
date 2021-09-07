@@ -347,6 +347,7 @@ resource "kubernetes_deployment" "apiserver" {
             "-psEventsTopic=${google_pubsub_topic.events.name}",
             "-psConsolidationsTopic=${google_pubsub_topic.consolidations.name}",
             "-ingestionStorage=gs://${google_storage_bucket.geocube.name}",
+            "-cancelledJobs=gs://${google_storage_bucket.geocube-consolidation-cancelled.name}",
             "-maxConnectionAge=3600"
           ]
           port {
