@@ -3,7 +3,6 @@ package svc
 import (
 	"context"
 	"fmt"
-	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -232,7 +231,7 @@ func (svc *Service) csldPrepareOrders(ctx context.Context, job *geocube.Job) err
 			if err != nil {
 				return fmt.Errorf("csldPrepareOrders.%w", err)
 			}
-			logger.Debugf("ReadAndCoverLayout (%d cells):%v\n", len(cells), time.Since(start))
+			logger.Debugf("ReadAndCoverLayout:%v\n", time.Since(start))
 		}
 
 		start = time.Now()
@@ -267,14 +266,7 @@ func (svc *Service) csldPrepareOrders(ctx context.Context, job *geocube.Job) err
 			}
 
 			// Create a basic ConsolidationContainer
-			var containerBaseName string
-			if strings.HasPrefix(svc.ingestionStoragePath, "gs://") {
-				gsContainerURI := uri.NewUri("gs", strings.Replace(svc.ingestionStoragePath, "gs://", "", -1), path.Join(layout.ID, cell.URI, job.Payload.InstanceID))
-				containerBaseName = gsContainerURI.String()
-			} else {
-				containerBaseName = path.Join(svc.ingestionStoragePath, layout.Name+layout.ID, cell.URI, job.Payload.InstanceID)
-			}
-
+			containerBaseName := utils.URLJoin(svc.ingestionStoragePath, layout.Name+layout.ID, cell.URI, job.Payload.InstanceID)
 			containerBase, err := geocube.NewConsolidationContainer(containerBaseName, variable, params, layout, cell)
 			if err != nil {
 				return fmt.Errorf("csldPrepareOrders.%w", err)
@@ -298,7 +290,7 @@ func (svc *Service) csldPrepareOrders(ctx context.Context, job *geocube.Job) err
 			datasets = csldPrepareOrdersExcludeFullContainers(datasets, layout.MaxRecords)
 
 			// Check that datasets are available
-			checkAvailability := true
+			checkAvailability := false
 			if checkAvailability {
 				var errs []string
 				for _, dataset := range datasets {
@@ -627,14 +619,10 @@ func (svc *Service) csldDeleteDatasets(ctx context.Context, job *geocube.Job) er
 	job.Log.Print("Tidy job...")
 
 	errors, err := svc.csldSubFncDeleteJobDatasetsAndContainers(ctx, job, geocube.LockFlagTODELETE, geocube.DatasetStatusTODELETE)
-	if err != nil {
-		errors = append(errors, err)
-	}
-	if errors != nil {
-		for _, err := range errors {
-			job.Log.Printf(err.Error())
-		}
-		return svc.publishEvent(ctx, geocube.DeletionFailed, job, errors[0].Error())
+
+	if err = utils.MergeErrors(true, err, errors...); err != nil {
+		job.Log.Println(err.Error())
+		return svc.publishEvent(ctx, geocube.DeletionFailed, job, err.Error())
 	}
 
 	return svc.publishEvent(ctx, geocube.DeletionDone, job, "")
