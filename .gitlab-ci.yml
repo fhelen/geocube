@@ -1,6 +1,19 @@
 stages:
+  - tests
   - build
   - deploy
+
+tests:
+  image: eu.gcr.io/$GCP_PROJECT/geocube-base:v1
+  stage: tests
+  allow_failure: true
+  script:
+    - mkdir coverage
+    - time go test $(go list ./...) -coverprofile="coverage/test.coverprofile"
+  artifacts:
+    paths:
+      - coverage/
+    expire_in: 31 days
 
 build:
   stage: build
