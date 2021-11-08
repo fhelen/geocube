@@ -5,16 +5,19 @@ resource "google_service_account" "gke-node" {
 resource "google_project_iam_member" "service_account-log_writer" {
   role    = "roles/logging.logWriter"
   member  = "serviceAccount:${google_service_account.gke-node.email}"
+  project = var.project-id
 }
 
 resource "google_project_iam_member" "service_account-metric_writer" {
   role    = "roles/monitoring.metricWriter"
   member  = "serviceAccount:${google_service_account.gke-node.email}"
+  project = var.project-id
 }
 
 resource "google_project_iam_member" "service_account-monitoring_viewer" {
   role    = "roles/monitoring.viewer"
   member  = "serviceAccount:${google_service_account.gke-node.email}"
+  project = var.project-id
 }
 
 resource "google_storage_bucket_iam_member" "gke-gcr-reader" {
@@ -60,9 +63,6 @@ resource "google_container_cluster" "geocube" {
   }
 
   master_auth {
-    username = ""
-    password = ""
-
     client_certificate_config {
       issue_client_certificate = false
     }
