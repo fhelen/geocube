@@ -1,0 +1,14 @@
+syntax = "proto3";
+package geocube;
+option go_package = "./pb;geocube";
+
+import "pb/catalog.proto";
+
+
+/**
+  * API GeocubeDownloader to download a cube from metadata
+  */
+service GeocubeDownloader {
+    // Request cube using metadatas returned by a call to Geocube.GetCube()
+    rpc GetCube(GetCubeMetadataRequest) returns (stream GetCubeMetadataResponse){}
+ }

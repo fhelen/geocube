@@ -10,6 +10,7 @@ import (
 
 	"github.com/airbusgeo/geocube/internal/geocube"
 	internalImage "github.com/airbusgeo/geocube/internal/image"
+	pb "github.com/airbusgeo/geocube/internal/pb"
 	"github.com/airbusgeo/geocube/internal/utils"
 	"github.com/airbusgeo/geocube/internal/utils/affine"
 	"github.com/airbusgeo/geocube/internal/utils/proj"
@@ -36,6 +37,64 @@ type SliceMeta struct {
 type CubeInfo struct {
 	NbImages   int
 	NbDatasets int
+}
+
+// ToProtobuf
+func (s *SliceMeta) ToProtobuf() *pb.DatasetMeta {
+	datasetMeta := &pb.DatasetMeta{
+		RefDformat:    s.RefDataMapping.DataFormat.ToProtobuf(),
+		ResamplingAlg: pb.Resampling(s.Resampling),
+		InternalsMeta: make([]*pb.InternalMeta, len(s.Datasets)),
+	}
+
+	// Populate the datasetMeta part of the header
+	for i, d := range s.Datasets {
+		datasetMeta.InternalsMeta[i] = &pb.InternalMeta{
+			ContainerUri:    d.URI,
+			ContainerSubdir: d.SubDir,
+			Bands:           d.Bands,
+			Dformat:         d.DataMapping.DataFormat.ToProtobuf(),
+			RangeMin:        d.DataMapping.RangeExt.Min,
+			RangeMax:        d.DataMapping.RangeExt.Max,
+			Exponent:        d.DataMapping.Exponent,
+		}
+	}
+	return datasetMeta
+}
+
+// NewSlideMetaFromProtobuf creates SliceMeta from protobuf
+func NewSlideMetaFromProtobuf(pbmeta *pb.DatasetMeta) *SliceMeta {
+	df := *geocube.NewDataFormatFromProtobuf(pbmeta.RefDformat)
+	s := &SliceMeta{
+		RefDataMapping: geocube.DataMapping{
+			DataFormat: df,
+			RangeExt:   df.Range,
+			Exponent:   1,
+		},
+		Resampling: geocube.Resampling(pbmeta.ResamplingAlg),
+		Datasets:   make([]*internalImage.Dataset, len(pbmeta.InternalsMeta)),
+	}
+
+	// Populate the datasetMeta part of the header
+	for i, meta := range pbmeta.InternalsMeta {
+		s.Datasets[i] = &internalImage.Dataset{
+			URI:    meta.ContainerUri,
+			SubDir: meta.ContainerSubdir,
+			Bands:  meta.Bands,
+			DataMapping: geocube.DataMapping{
+				DataFormat: *geocube.NewDataFormatFromProtobuf(meta.Dformat),
+				RangeExt:   geocube.Range{Min: meta.RangeMin, Max: meta.RangeMax},
+				Exponent:   meta.Exponent,
+			},
+		}
+	}
+	return s
+}
+
+// GetCubeFromDatasets implements GeocubeDownloaderService
+// panics if instancesID is empty
+func (svc *Service) GetCubeFromMetadatas(ctx context.Context, metadatas []SliceMeta, grecords [][]*geocube.Record, format string) (CubeInfo, <-chan CubeSlice, error) {
+	return CubeInfo{NbImages: 0, NbDatasets: 0}, nil, fmt.Errorf("not implemented error")
 }
 
 // GetCubeFromRecords implements GeocubeService
@@ -213,17 +272,15 @@ func (svc *Service) getCubeStream(ctx context.Context, datasetsByRecord [][]*int
 		// Push the headers into a channel
 		headersOut := make(chan CubeSlice, len(grecords))
 		for i, records := range grecords {
-			cubeMeta := SliceMeta{
-				Resampling:     outDesc.Resampling,
-				RefDataMapping: outDesc.DataMapping,
-				Datasets:       datasetsByRecord[i]}
-
 			headersOut <- CubeSlice{
-				Image:        geocube.NewBitmapHeader(image.Rect(0, 0, outDesc.Width, outDesc.Height), outDesc.DataMapping.DType, outDesc.Bands),
-				Err:          nil,
-				Records:      records,
-				Metadata:     map[string]string{},
-				DatasetsMeta: cubeMeta}
+				Image:    geocube.NewBitmapHeader(image.Rect(0, 0, outDesc.Width, outDesc.Height), outDesc.DataMapping.DType, outDesc.Bands),
+				Err:      nil,
+				Records:  records,
+				Metadata: map[string]string{},
+				DatasetsMeta: SliceMeta{
+					Resampling:     outDesc.Resampling,
+					RefDataMapping: outDesc.DataMapping,
+					Datasets:       datasetsByRecord[i]}}
 		}
 		close(headersOut)
 

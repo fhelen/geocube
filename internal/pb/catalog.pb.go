@@ -20,6 +20,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+//*
+// ByteOrder for the conversion between data type and byte.
 type ByteOrder int32
 
 const (
@@ -66,6 +68,8 @@ func (ByteOrder) EnumDescriptor() ([]byte, []int) {
 	return file_pb_catalog_proto_rawDescGZIP(), []int{0}
 }
 
+//*
+//
 type FileFormat int32
 
 const (
@@ -112,6 +116,8 @@ func (FileFormat) EnumDescriptor() ([]byte, []int) {
 	return file_pb_catalog_proto_rawDescGZIP(), []int{1}
 }
 
+//*
+// Shape of an image width x height x channels
 type Shape struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -175,6 +181,8 @@ func (x *Shape) GetDim3() int32 {
 	return 0
 }
 
+//*
+//
 type ImageHeader struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -294,6 +302,8 @@ func (x *ImageHeader) GetError() string {
 	return ""
 }
 
+//*
+//
 type ImageChunk struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -349,6 +359,8 @@ func (x *ImageChunk) GetData() []byte {
 	return nil
 }
 
+//*
+//
 type ImageFile struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -396,6 +408,8 @@ func (x *ImageFile) GetData() []byte {
 	return nil
 }
 
+//*
+// Request a cube of data
 type GetCubeRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -406,13 +420,13 @@ type GetCubeRequest struct {
 	//	*GetCubeRequest_Filters
 	//	*GetCubeRequest_Grecords
 	RecordsLister    isGetCubeRequest_RecordsLister `protobuf_oneof:"records_lister"`
-	InstancesId      []string                       `protobuf:"bytes,3,rep,name=instances_id,json=instancesId,proto3" json:"instances_id,omitempty"` // At least one, and all must be instance of the same variable. Only one is actually supported
-	Crs              string                         `protobuf:"bytes,4,opt,name=crs,proto3" json:"crs,omitempty"`
-	PixToCrs         *GeoTransform                  `protobuf:"bytes,5,opt,name=pix_to_crs,json=pixToCrs,proto3" json:"pix_to_crs,omitempty"`
-	Size             *Size                          `protobuf:"bytes,6,opt,name=size,proto3" json:"size,omitempty"`
-	CompressionLevel int32                          `protobuf:"varint,7,opt,name=compression_level,json=compressionLevel,proto3" json:"compression_level,omitempty"` // -1 to 10 (-1:default, 0: no compression, 1->9: level of compression from the fastest to the best compression)
-	HeadersOnly      bool                           `protobuf:"varint,8,opt,name=headers_only,json=headersOnly,proto3" json:"headers_only,omitempty"`                // Only returns headers
-	Format           FileFormat                     `protobuf:"varint,9,opt,name=format,proto3,enum=geocube.FileFormat" json:"format,omitempty"`
+	InstancesId      []string                       `protobuf:"bytes,3,rep,name=instances_id,json=instancesId,proto3" json:"instances_id,omitempty"`                 // Instances of a variable defining the kind of images requested. At least one, and all must be instance of the same variable. Only one is actually supported
+	Crs              string                         `protobuf:"bytes,4,opt,name=crs,proto3" json:"crs,omitempty"`                                                    // Coordinates Reference System of the output images (images will be reprojected on the fly if necessary)
+	PixToCrs         *GeoTransform                  `protobuf:"bytes,5,opt,name=pix_to_crs,json=pixToCrs,proto3" json:"pix_to_crs,omitempty"`                        // GeoTransform of the requested cube (images will be rescaled on the fly if necessary)
+	Size             *Size                          `protobuf:"bytes,6,opt,name=size,proto3" json:"size,omitempty"`                                                  // Shape of the output images
+	CompressionLevel int32                          `protobuf:"varint,7,opt,name=compression_level,json=compressionLevel,proto3" json:"compression_level,omitempty"` // Define a level of compression to speed up the transfer, values: -2 to 9 (-2: Huffman only, -1:default, 0: no compression, 1->9: level of compression from the fastest to the best compression). The data is compressed by the server and decompressed by the Client. Use -2 or 0 if the bandwidth is not limited.
+	HeadersOnly      bool                           `protobuf:"varint,8,opt,name=headers_only,json=headersOnly,proto3" json:"headers_only,omitempty"`                // Only returns headers (including all metadatas on datasets)
+	Format           FileFormat                     `protobuf:"varint,9,opt,name=format,proto3,enum=geocube.FileFormat" json:"format,omitempty"`                     // Format of the output images
 }
 
 func (x *GetCubeRequest) Reset() {
@@ -529,15 +543,15 @@ type isGetCubeRequest_RecordsLister interface {
 }
 
 type GetCubeRequest_Records struct {
-	Records *RecordList `protobuf:"bytes,1,opt,name=records,proto3,oneof"` // At least one
+	Records *RecordList `protobuf:"bytes,1,opt,name=records,proto3,oneof"` // List of records id requested. At least one. One image will be returned by record (if not empty)
 }
 
 type GetCubeRequest_Filters struct {
-	Filters *RecordFilters `protobuf:"bytes,2,opt,name=filters,proto3,oneof"`
+	Filters *RecordFilters `protobuf:"bytes,2,opt,name=filters,proto3,oneof"` // Filters to list the records that will be used to create the cube
 }
 
 type GetCubeRequest_Grecords struct {
-	Grecords *GroupedRecordsList `protobuf:"bytes,10,opt,name=grecords,proto3,oneof"`
+	Grecords *GroupedRecordsList `protobuf:"bytes,10,opt,name=grecords,proto3,oneof"` // List of group of records id requested. At least one. One image will be returned by group of records (if not empty). All the datasets of a group of records will be merged together using the latest first.
 }
 
 func (*GetCubeRequest_Records) isGetCubeRequest_RecordsLister() {}
@@ -546,6 +560,8 @@ func (*GetCubeRequest_Filters) isGetCubeRequest_RecordsLister() {}
 
 func (*GetCubeRequest_Grecords) isGetCubeRequest_RecordsLister() {}
 
+//*
+// Return global information on the requested cube
 type GetCubeResponseHeader struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -601,6 +617,8 @@ func (x *GetCubeResponseHeader) GetNbDatasets() int64 {
 	return 0
 }
 
+//*
+// Return either information on the cube, information on an image or a chunk of an image
 type GetCubeResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -695,6 +713,169 @@ func (*GetCubeResponse_Header) isGetCubeResponse_Response() {}
 
 func (*GetCubeResponse_Chunk) isGetCubeResponse_Response() {}
 
+//*
+// Request a cube from metadatas (provided by Geocube.GetCube())
+type GetCubeMetadataRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	DatasetsMeta   []*DatasetMeta                           `protobuf:"bytes,1,rep,name=datasets_meta,json=datasetsMeta,proto3" json:"datasets_meta,omitempty"`
+	GroupedRecords []*GetCubeMetadataRequest_GroupedRecords `protobuf:"bytes,2,rep,name=grouped_records,json=groupedRecords,proto3" json:"grouped_records,omitempty"`
+	Format         FileFormat                               `protobuf:"varint,3,opt,name=format,proto3,enum=geocube.FileFormat" json:"format,omitempty"`
+}
+
+func (x *GetCubeMetadataRequest) Reset() {
+	*x = GetCubeMetadataRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_pb_catalog_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetCubeMetadataRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCubeMetadataRequest) ProtoMessage() {}
+
+func (x *GetCubeMetadataRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pb_catalog_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCubeMetadataRequest.ProtoReflect.Descriptor instead.
+func (*GetCubeMetadataRequest) Descriptor() ([]byte, []int) {
+	return file_pb_catalog_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetCubeMetadataRequest) GetDatasetsMeta() []*DatasetMeta {
+	if x != nil {
+		return x.DatasetsMeta
+	}
+	return nil
+}
+
+func (x *GetCubeMetadataRequest) GetGroupedRecords() []*GetCubeMetadataRequest_GroupedRecords {
+	if x != nil {
+		return x.GroupedRecords
+	}
+	return nil
+}
+
+func (x *GetCubeMetadataRequest) GetFormat() FileFormat {
+	if x != nil {
+		return x.Format
+	}
+	return FileFormat_Raw
+}
+
+//*
+// Return either information on the cube, information on an image or a chunk of an image
+type GetCubeMetadataResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Types that are assignable to Response:
+	//	*GetCubeMetadataResponse_GlobalHeader
+	//	*GetCubeMetadataResponse_Header
+	//	*GetCubeMetadataResponse_Chunk
+	Response isGetCubeMetadataResponse_Response `protobuf_oneof:"response"`
+}
+
+func (x *GetCubeMetadataResponse) Reset() {
+	*x = GetCubeMetadataResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_pb_catalog_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetCubeMetadataResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCubeMetadataResponse) ProtoMessage() {}
+
+func (x *GetCubeMetadataResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pb_catalog_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCubeMetadataResponse.ProtoReflect.Descriptor instead.
+func (*GetCubeMetadataResponse) Descriptor() ([]byte, []int) {
+	return file_pb_catalog_proto_rawDescGZIP(), []int{8}
+}
+
+func (m *GetCubeMetadataResponse) GetResponse() isGetCubeMetadataResponse_Response {
+	if m != nil {
+		return m.Response
+	}
+	return nil
+}
+
+func (x *GetCubeMetadataResponse) GetGlobalHeader() *GetCubeResponseHeader {
+	if x, ok := x.GetResponse().(*GetCubeMetadataResponse_GlobalHeader); ok {
+		return x.GlobalHeader
+	}
+	return nil
+}
+
+func (x *GetCubeMetadataResponse) GetHeader() *ImageHeader {
+	if x, ok := x.GetResponse().(*GetCubeMetadataResponse_Header); ok {
+		return x.Header
+	}
+	return nil
+}
+
+func (x *GetCubeMetadataResponse) GetChunk() *ImageChunk {
+	if x, ok := x.GetResponse().(*GetCubeMetadataResponse_Chunk); ok {
+		return x.Chunk
+	}
+	return nil
+}
+
+type isGetCubeMetadataResponse_Response interface {
+	isGetCubeMetadataResponse_Response()
+}
+
+type GetCubeMetadataResponse_GlobalHeader struct {
+	GlobalHeader *GetCubeResponseHeader `protobuf:"bytes,3,opt,name=global_header,json=globalHeader,proto3,oneof"`
+}
+
+type GetCubeMetadataResponse_Header struct {
+	Header *ImageHeader `protobuf:"bytes,1,opt,name=header,proto3,oneof"`
+}
+
+type GetCubeMetadataResponse_Chunk struct {
+	Chunk *ImageChunk `protobuf:"bytes,2,opt,name=chunk,proto3,oneof"`
+}
+
+func (*GetCubeMetadataResponse_GlobalHeader) isGetCubeMetadataResponse_Response() {}
+
+func (*GetCubeMetadataResponse_Header) isGetCubeMetadataResponse_Response() {}
+
+func (*GetCubeMetadataResponse_Chunk) isGetCubeMetadataResponse_Response() {}
+
+//*
+//
 type GetTileRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -712,7 +893,7 @@ type GetTileRequest struct {
 func (x *GetTileRequest) Reset() {
 	*x = GetTileRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pb_catalog_proto_msgTypes[7]
+		mi := &file_pb_catalog_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -725,7 +906,7 @@ func (x *GetTileRequest) String() string {
 func (*GetTileRequest) ProtoMessage() {}
 
 func (x *GetTileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pb_catalog_proto_msgTypes[7]
+	mi := &file_pb_catalog_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -738,7 +919,7 @@ func (x *GetTileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTileRequest.ProtoReflect.Descriptor instead.
 func (*GetTileRequest) Descriptor() ([]byte, []int) {
-	return file_pb_catalog_proto_rawDescGZIP(), []int{7}
+	return file_pb_catalog_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetTileRequest) GetInstanceId() string {
@@ -793,6 +974,8 @@ type GetTileRequest_Records struct {
 
 func (*GetTileRequest_Records) isGetTileRequest_RecordsLister() {}
 
+//*
+//
 type GetTileResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -804,7 +987,7 @@ type GetTileResponse struct {
 func (x *GetTileResponse) Reset() {
 	*x = GetTileResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pb_catalog_proto_msgTypes[8]
+		mi := &file_pb_catalog_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -817,7 +1000,7 @@ func (x *GetTileResponse) String() string {
 func (*GetTileResponse) ProtoMessage() {}
 
 func (x *GetTileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pb_catalog_proto_msgTypes[8]
+	mi := &file_pb_catalog_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -830,12 +1013,59 @@ func (x *GetTileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTileResponse.ProtoReflect.Descriptor instead.
 func (*GetTileResponse) Descriptor() ([]byte, []int) {
-	return file_pb_catalog_proto_rawDescGZIP(), []int{8}
+	return file_pb_catalog_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetTileResponse) GetImage() *ImageFile {
 	if x != nil {
 		return x.Image
+	}
+	return nil
+}
+
+type GetCubeMetadataRequest_GroupedRecords struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Records []*Record `protobuf:"bytes,1,rep,name=records,proto3" json:"records,omitempty"`
+}
+
+func (x *GetCubeMetadataRequest_GroupedRecords) Reset() {
+	*x = GetCubeMetadataRequest_GroupedRecords{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_pb_catalog_proto_msgTypes[11]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetCubeMetadataRequest_GroupedRecords) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCubeMetadataRequest_GroupedRecords) ProtoMessage() {}
+
+func (x *GetCubeMetadataRequest_GroupedRecords) ProtoReflect() protoreflect.Message {
+	mi := &file_pb_catalog_proto_msgTypes[11]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCubeMetadataRequest_GroupedRecords.ProtoReflect.Descriptor instead.
+func (*GetCubeMetadataRequest_GroupedRecords) Descriptor() ([]byte, []int) {
+	return file_pb_catalog_proto_rawDescGZIP(), []int{7, 0}
+}
+
+func (x *GetCubeMetadataRequest_GroupedRecords) GetRecords() []*Record {
+	if x != nil {
+		return x.Records
 	}
 	return nil
 }
@@ -928,27 +1158,58 @@ var file_pb_catalog_proto_rawDesc = []byte{
 	0x12, 0x2b, 0x0a, 0x05, 0x63, 0x68, 0x75, 0x6e, 0x6b, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32,
 	0x13, 0x2e, 0x67, 0x65, 0x6f, 0x63, 0x75, 0x62, 0x65, 0x2e, 0x49, 0x6d, 0x61, 0x67, 0x65, 0x43,
 	0x68, 0x75, 0x6e, 0x6b, 0x48, 0x00, 0x52, 0x05, 0x63, 0x68, 0x75, 0x6e, 0x6b, 0x42, 0x0a, 0x0a,
-	0x08, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x9e, 0x01, 0x0a, 0x0e, 0x47, 0x65,
-	0x74, 0x54, 0x69, 0x6c, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1f, 0x0a, 0x0b,
-	0x69, 0x6e, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x0a, 0x69, 0x6e, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x49, 0x64, 0x12, 0x0c, 0x0a,
-	0x01, 0x78, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x01, 0x78, 0x12, 0x0c, 0x0a, 0x01, 0x79,
-	0x18, 0x03, 0x20, 0x01, 0x28, 0x05, 0x52, 0x01, 0x79, 0x12, 0x0c, 0x0a, 0x01, 0x7a, 0x18, 0x04,
-	0x20, 0x01, 0x28, 0x05, 0x52, 0x01, 0x7a, 0x12, 0x2f, 0x0a, 0x07, 0x72, 0x65, 0x63, 0x6f, 0x72,
-	0x64, 0x73, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x67, 0x65, 0x6f, 0x63, 0x75,
-	0x62, 0x65, 0x2e, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x4c, 0x69, 0x73, 0x74, 0x48, 0x00, 0x52,
-	0x07, 0x72, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x42, 0x10, 0x0a, 0x0e, 0x72, 0x65, 0x63, 0x6f,
-	0x72, 0x64, 0x73, 0x5f, 0x6c, 0x69, 0x73, 0x74, 0x65, 0x72, 0x22, 0x3b, 0x0a, 0x0f, 0x47, 0x65,
-	0x74, 0x54, 0x69, 0x6c, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x28, 0x0a,
-	0x05, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x67,
-	0x65, 0x6f, 0x63, 0x75, 0x62, 0x65, 0x2e, 0x49, 0x6d, 0x61, 0x67, 0x65, 0x46, 0x69, 0x6c, 0x65,
-	0x52, 0x05, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x2a, 0x2c, 0x0a, 0x09, 0x42, 0x79, 0x74, 0x65, 0x4f,
-	0x72, 0x64, 0x65, 0x72, 0x12, 0x10, 0x0a, 0x0c, 0x4c, 0x69, 0x74, 0x74, 0x6c, 0x65, 0x45, 0x6e,
-	0x64, 0x69, 0x61, 0x6e, 0x10, 0x00, 0x12, 0x0d, 0x0a, 0x09, 0x42, 0x69, 0x67, 0x45, 0x6e, 0x64,
-	0x69, 0x61, 0x6e, 0x10, 0x01, 0x2a, 0x20, 0x0a, 0x0a, 0x46, 0x69, 0x6c, 0x65, 0x46, 0x6f, 0x72,
-	0x6d, 0x61, 0x74, 0x12, 0x07, 0x0a, 0x03, 0x52, 0x61, 0x77, 0x10, 0x00, 0x12, 0x09, 0x0a, 0x05,
-	0x47, 0x54, 0x69, 0x66, 0x66, 0x10, 0x01, 0x42, 0x0e, 0x5a, 0x0c, 0x2e, 0x2f, 0x70, 0x62, 0x3b,
-	0x67, 0x65, 0x6f, 0x63, 0x75, 0x62, 0x65, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x08, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x96, 0x02, 0x0a, 0x16, 0x47, 0x65,
+	0x74, 0x43, 0x75, 0x62, 0x65, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x12, 0x39, 0x0a, 0x0d, 0x64, 0x61, 0x74, 0x61, 0x73, 0x65, 0x74, 0x73,
+	0x5f, 0x6d, 0x65, 0x74, 0x61, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x67, 0x65,
+	0x6f, 0x63, 0x75, 0x62, 0x65, 0x2e, 0x44, 0x61, 0x74, 0x61, 0x73, 0x65, 0x74, 0x4d, 0x65, 0x74,
+	0x61, 0x52, 0x0c, 0x64, 0x61, 0x74, 0x61, 0x73, 0x65, 0x74, 0x73, 0x4d, 0x65, 0x74, 0x61, 0x12,
+	0x57, 0x0a, 0x0f, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x65, 0x64, 0x5f, 0x72, 0x65, 0x63, 0x6f, 0x72,
+	0x64, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x2e, 0x2e, 0x67, 0x65, 0x6f, 0x63, 0x75,
+	0x62, 0x65, 0x2e, 0x47, 0x65, 0x74, 0x43, 0x75, 0x62, 0x65, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61,
+	0x74, 0x61, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x2e, 0x47, 0x72, 0x6f, 0x75, 0x70, 0x65,
+	0x64, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x52, 0x0e, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x65,
+	0x64, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x12, 0x2b, 0x0a, 0x06, 0x66, 0x6f, 0x72, 0x6d,
+	0x61, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x13, 0x2e, 0x67, 0x65, 0x6f, 0x63, 0x75,
+	0x62, 0x65, 0x2e, 0x46, 0x69, 0x6c, 0x65, 0x46, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x52, 0x06, 0x66,
+	0x6f, 0x72, 0x6d, 0x61, 0x74, 0x1a, 0x3b, 0x0a, 0x0e, 0x47, 0x72, 0x6f, 0x75, 0x70, 0x65, 0x64,
+	0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x12, 0x29, 0x0a, 0x07, 0x72, 0x65, 0x63, 0x6f, 0x72,
+	0x64, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0f, 0x2e, 0x67, 0x65, 0x6f, 0x63, 0x75,
+	0x62, 0x65, 0x2e, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x52, 0x07, 0x72, 0x65, 0x63, 0x6f, 0x72,
+	0x64, 0x73, 0x22, 0xc9, 0x01, 0x0a, 0x17, 0x47, 0x65, 0x74, 0x43, 0x75, 0x62, 0x65, 0x4d, 0x65,
+	0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x45,
+	0x0a, 0x0d, 0x67, 0x6c, 0x6f, 0x62, 0x61, 0x6c, 0x5f, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x18,
+	0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1e, 0x2e, 0x67, 0x65, 0x6f, 0x63, 0x75, 0x62, 0x65, 0x2e,
+	0x47, 0x65, 0x74, 0x43, 0x75, 0x62, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x48,
+	0x65, 0x61, 0x64, 0x65, 0x72, 0x48, 0x00, 0x52, 0x0c, 0x67, 0x6c, 0x6f, 0x62, 0x61, 0x6c, 0x48,
+	0x65, 0x61, 0x64, 0x65, 0x72, 0x12, 0x2e, 0x0a, 0x06, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x67, 0x65, 0x6f, 0x63, 0x75, 0x62, 0x65, 0x2e,
+	0x49, 0x6d, 0x61, 0x67, 0x65, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x48, 0x00, 0x52, 0x06, 0x68,
+	0x65, 0x61, 0x64, 0x65, 0x72, 0x12, 0x2b, 0x0a, 0x05, 0x63, 0x68, 0x75, 0x6e, 0x6b, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x67, 0x65, 0x6f, 0x63, 0x75, 0x62, 0x65, 0x2e, 0x49,
+	0x6d, 0x61, 0x67, 0x65, 0x43, 0x68, 0x75, 0x6e, 0x6b, 0x48, 0x00, 0x52, 0x05, 0x63, 0x68, 0x75,
+	0x6e, 0x6b, 0x42, 0x0a, 0x0a, 0x08, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x9e,
+	0x01, 0x0a, 0x0e, 0x47, 0x65, 0x74, 0x54, 0x69, 0x6c, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x12, 0x1f, 0x0a, 0x0b, 0x69, 0x6e, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x5f, 0x69, 0x64,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x69, 0x6e, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65,
+	0x49, 0x64, 0x12, 0x0c, 0x0a, 0x01, 0x78, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x01, 0x78,
+	0x12, 0x0c, 0x0a, 0x01, 0x79, 0x18, 0x03, 0x20, 0x01, 0x28, 0x05, 0x52, 0x01, 0x79, 0x12, 0x0c,
+	0x0a, 0x01, 0x7a, 0x18, 0x04, 0x20, 0x01, 0x28, 0x05, 0x52, 0x01, 0x7a, 0x12, 0x2f, 0x0a, 0x07,
+	0x72, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x13, 0x2e,
+	0x67, 0x65, 0x6f, 0x63, 0x75, 0x62, 0x65, 0x2e, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x4c, 0x69,
+	0x73, 0x74, 0x48, 0x00, 0x52, 0x07, 0x72, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x42, 0x10, 0x0a,
+	0x0e, 0x72, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x5f, 0x6c, 0x69, 0x73, 0x74, 0x65, 0x72, 0x22,
+	0x3b, 0x0a, 0x0f, 0x47, 0x65, 0x74, 0x54, 0x69, 0x6c, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x12, 0x28, 0x0a, 0x05, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x12, 0x2e, 0x67, 0x65, 0x6f, 0x63, 0x75, 0x62, 0x65, 0x2e, 0x49, 0x6d, 0x61, 0x67,
+	0x65, 0x46, 0x69, 0x6c, 0x65, 0x52, 0x05, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x2a, 0x2c, 0x0a, 0x09,
+	0x42, 0x79, 0x74, 0x65, 0x4f, 0x72, 0x64, 0x65, 0x72, 0x12, 0x10, 0x0a, 0x0c, 0x4c, 0x69, 0x74,
+	0x74, 0x6c, 0x65, 0x45, 0x6e, 0x64, 0x69, 0x61, 0x6e, 0x10, 0x00, 0x12, 0x0d, 0x0a, 0x09, 0x42,
+	0x69, 0x67, 0x45, 0x6e, 0x64, 0x69, 0x61, 0x6e, 0x10, 0x01, 0x2a, 0x20, 0x0a, 0x0a, 0x46, 0x69,
+	0x6c, 0x65, 0x46, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x12, 0x07, 0x0a, 0x03, 0x52, 0x61, 0x77, 0x10,
+	0x00, 0x12, 0x09, 0x0a, 0x05, 0x47, 0x54, 0x69, 0x66, 0x66, 0x10, 0x01, 0x42, 0x0e, 0x5a, 0x0c,
+	0x2e, 0x2f, 0x70, 0x62, 0x3b, 0x67, 0x65, 0x6f, 0x63, 0x75, 0x62, 0x65, 0x62, 0x06, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -964,50 +1225,60 @@ func file_pb_catalog_proto_rawDescGZIP() []byte {
 }
 
 var file_pb_catalog_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_pb_catalog_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_pb_catalog_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_pb_catalog_proto_goTypes = []interface{}{
-	(ByteOrder)(0),                // 0: geocube.ByteOrder
-	(FileFormat)(0),               // 1: geocube.FileFormat
-	(*Shape)(nil),                 // 2: geocube.Shape
-	(*ImageHeader)(nil),           // 3: geocube.ImageHeader
-	(*ImageChunk)(nil),            // 4: geocube.ImageChunk
-	(*ImageFile)(nil),             // 5: geocube.ImageFile
-	(*GetCubeRequest)(nil),        // 6: geocube.GetCubeRequest
-	(*GetCubeResponseHeader)(nil), // 7: geocube.GetCubeResponseHeader
-	(*GetCubeResponse)(nil),       // 8: geocube.GetCubeResponse
-	(*GetTileRequest)(nil),        // 9: geocube.GetTileRequest
-	(*GetTileResponse)(nil),       // 10: geocube.GetTileResponse
-	(DataFormat_Dtype)(0),         // 11: geocube.DataFormat.Dtype
-	(*Record)(nil),                // 12: geocube.Record
-	(*DatasetMeta)(nil),           // 13: geocube.DatasetMeta
-	(*RecordList)(nil),            // 14: geocube.RecordList
-	(*RecordFilters)(nil),         // 15: geocube.RecordFilters
-	(*GroupedRecordsList)(nil),    // 16: geocube.GroupedRecordsList
-	(*GeoTransform)(nil),          // 17: geocube.GeoTransform
-	(*Size)(nil),                  // 18: geocube.Size
+	(ByteOrder)(0),                                // 0: geocube.ByteOrder
+	(FileFormat)(0),                               // 1: geocube.FileFormat
+	(*Shape)(nil),                                 // 2: geocube.Shape
+	(*ImageHeader)(nil),                           // 3: geocube.ImageHeader
+	(*ImageChunk)(nil),                            // 4: geocube.ImageChunk
+	(*ImageFile)(nil),                             // 5: geocube.ImageFile
+	(*GetCubeRequest)(nil),                        // 6: geocube.GetCubeRequest
+	(*GetCubeResponseHeader)(nil),                 // 7: geocube.GetCubeResponseHeader
+	(*GetCubeResponse)(nil),                       // 8: geocube.GetCubeResponse
+	(*GetCubeMetadataRequest)(nil),                // 9: geocube.GetCubeMetadataRequest
+	(*GetCubeMetadataResponse)(nil),               // 10: geocube.GetCubeMetadataResponse
+	(*GetTileRequest)(nil),                        // 11: geocube.GetTileRequest
+	(*GetTileResponse)(nil),                       // 12: geocube.GetTileResponse
+	(*GetCubeMetadataRequest_GroupedRecords)(nil), // 13: geocube.GetCubeMetadataRequest.GroupedRecords
+	(DataFormat_Dtype)(0),                         // 14: geocube.DataFormat.Dtype
+	(*Record)(nil),                                // 15: geocube.Record
+	(*DatasetMeta)(nil),                           // 16: geocube.DatasetMeta
+	(*RecordList)(nil),                            // 17: geocube.RecordList
+	(*RecordFilters)(nil),                         // 18: geocube.RecordFilters
+	(*GroupedRecordsList)(nil),                    // 19: geocube.GroupedRecordsList
+	(*GeoTransform)(nil),                          // 20: geocube.GeoTransform
+	(*Size)(nil),                                  // 21: geocube.Size
 }
 var file_pb_catalog_proto_depIdxs = []int32{
 	2,  // 0: geocube.ImageHeader.shape:type_name -> geocube.Shape
-	11, // 1: geocube.ImageHeader.dtype:type_name -> geocube.DataFormat.Dtype
+	14, // 1: geocube.ImageHeader.dtype:type_name -> geocube.DataFormat.Dtype
 	0,  // 2: geocube.ImageHeader.order:type_name -> geocube.ByteOrder
-	12, // 3: geocube.ImageHeader.records:type_name -> geocube.Record
-	13, // 4: geocube.ImageHeader.dataset_meta:type_name -> geocube.DatasetMeta
-	14, // 5: geocube.GetCubeRequest.records:type_name -> geocube.RecordList
-	15, // 6: geocube.GetCubeRequest.filters:type_name -> geocube.RecordFilters
-	16, // 7: geocube.GetCubeRequest.grecords:type_name -> geocube.GroupedRecordsList
-	17, // 8: geocube.GetCubeRequest.pix_to_crs:type_name -> geocube.GeoTransform
-	18, // 9: geocube.GetCubeRequest.size:type_name -> geocube.Size
+	15, // 3: geocube.ImageHeader.records:type_name -> geocube.Record
+	16, // 4: geocube.ImageHeader.dataset_meta:type_name -> geocube.DatasetMeta
+	17, // 5: geocube.GetCubeRequest.records:type_name -> geocube.RecordList
+	18, // 6: geocube.GetCubeRequest.filters:type_name -> geocube.RecordFilters
+	19, // 7: geocube.GetCubeRequest.grecords:type_name -> geocube.GroupedRecordsList
+	20, // 8: geocube.GetCubeRequest.pix_to_crs:type_name -> geocube.GeoTransform
+	21, // 9: geocube.GetCubeRequest.size:type_name -> geocube.Size
 	1,  // 10: geocube.GetCubeRequest.format:type_name -> geocube.FileFormat
 	7,  // 11: geocube.GetCubeResponse.global_header:type_name -> geocube.GetCubeResponseHeader
 	3,  // 12: geocube.GetCubeResponse.header:type_name -> geocube.ImageHeader
 	4,  // 13: geocube.GetCubeResponse.chunk:type_name -> geocube.ImageChunk
-	14, // 14: geocube.GetTileRequest.records:type_name -> geocube.RecordList
-	5,  // 15: geocube.GetTileResponse.image:type_name -> geocube.ImageFile
-	16, // [16:16] is the sub-list for method output_type
-	16, // [16:16] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	16, // 14: geocube.GetCubeMetadataRequest.datasets_meta:type_name -> geocube.DatasetMeta
+	13, // 15: geocube.GetCubeMetadataRequest.grouped_records:type_name -> geocube.GetCubeMetadataRequest.GroupedRecords
+	1,  // 16: geocube.GetCubeMetadataRequest.format:type_name -> geocube.FileFormat
+	7,  // 17: geocube.GetCubeMetadataResponse.global_header:type_name -> geocube.GetCubeResponseHeader
+	3,  // 18: geocube.GetCubeMetadataResponse.header:type_name -> geocube.ImageHeader
+	4,  // 19: geocube.GetCubeMetadataResponse.chunk:type_name -> geocube.ImageChunk
+	17, // 20: geocube.GetTileRequest.records:type_name -> geocube.RecordList
+	5,  // 21: geocube.GetTileResponse.image:type_name -> geocube.ImageFile
+	15, // 22: geocube.GetCubeMetadataRequest.GroupedRecords.records:type_name -> geocube.Record
+	23, // [23:23] is the sub-list for method output_type
+	23, // [23:23] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_pb_catalog_proto_init() }
@@ -1105,7 +1376,7 @@ func file_pb_catalog_proto_init() {
 			}
 		}
 		file_pb_catalog_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetTileRequest); i {
+			switch v := v.(*GetCubeMetadataRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1117,7 +1388,43 @@ func file_pb_catalog_proto_init() {
 			}
 		}
 		file_pb_catalog_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetCubeMetadataResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_pb_catalog_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetTileRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_pb_catalog_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetTileResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_pb_catalog_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetCubeMetadataRequest_GroupedRecords); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1139,7 +1446,12 @@ func file_pb_catalog_proto_init() {
 		(*GetCubeResponse_Header)(nil),
 		(*GetCubeResponse_Chunk)(nil),
 	}
-	file_pb_catalog_proto_msgTypes[7].OneofWrappers = []interface{}{
+	file_pb_catalog_proto_msgTypes[8].OneofWrappers = []interface{}{
+		(*GetCubeMetadataResponse_GlobalHeader)(nil),
+		(*GetCubeMetadataResponse_Header)(nil),
+		(*GetCubeMetadataResponse_Chunk)(nil),
+	}
+	file_pb_catalog_proto_msgTypes[9].OneofWrappers = []interface{}{
 		(*GetTileRequest_Records)(nil),
 	}
 	type x struct{}
@@ -1148,7 +1460,7 @@ func file_pb_catalog_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_pb_catalog_proto_rawDesc,
 			NumEnums:      2,
-			NumMessages:   9,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
