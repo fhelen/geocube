@@ -10,5 +10,5 @@ import "pb/catalog.proto";
   */
 service GeocubeDownloader {
     // Request cube using metadatas returned by a call to Geocube.GetCube()
-    rpc GetCube(GetCubeMetadataRequest) returns (stream GetCubeMetadataResponse){}
+  rpc DownloadCube(GetCubeMetadataRequest) returns (stream GetCubeMetadataResponse){}
  }

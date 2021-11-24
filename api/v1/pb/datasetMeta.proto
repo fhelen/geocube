@@ -3,15 +3,12 @@ package geocube;
 option go_package = "./pb;geocube";
 
 import "pb/dataformat.proto";
-import "pb/variables.proto";
 
 
 /**
   * DatasetMeta contains all the metadata on files and fileformats to download and generate a slice of a cube
   */
 message DatasetMeta{
-    DataFormat             ref_dformat    = 1; // Output dataformat
-    Resampling             resampling_alg = 2; // Resampling algorithm to use for reprojection
     repeated InternalMeta  internalsMeta  = 3; // Information on the images composing the slice
 }
 

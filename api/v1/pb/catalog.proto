@@ -6,7 +6,7 @@ import "pb/dataformat.proto";
 import "pb/records.proto";
 import "pb/layouts.proto";
 import "pb/datasetMeta.proto";
-
+import "pb/variables.proto";
 /**
   * Shape of an image width x height x channels
   */
@@ -86,8 +86,10 @@ message GetCubeRequest {
   * Return global information on the requested cube
   */
 message GetCubeResponseHeader{
-    int64 count       = 1;
-    int64 nb_datasets = 2;
+  int64 count       = 1;
+  int64 nb_datasets = 2;
+  DataFormat ref_dformat    = 3; // Output dataformat
+  Resampling resampling_alg = 4; // Resampling algorithm to use for reprojection
 }
 
 /**
@@ -105,12 +107,17 @@ message GetCubeResponse {
   * Request a cube from metadatas (provided by Geocube.GetCube())
   */
 message GetCubeMetadataRequest{
-    message GroupedRecords{
-        repeated Record records = 1;
+  message GroupedRecords{
+      repeated Record records = 1;
     }
-    repeated DatasetMeta     datasets_meta   = 1;  // List of Metadatas needed to download and generate the slices of the cube
-    repeated GroupedRecords  grouped_records = 2;  // List of GroupedRecords describing the slices of the cube
-    FileFormat               format          = 3;  // Format of the output data
+  repeated DatasetMeta     datasets_meta   = 1;  // List of Metadatas needed to download and generate the slices of the cube
+  repeated GroupedRecords  grouped_records = 2;  // List of GroupedRecords describing the slices of the cube
+  DataFormat               ref_dformat     = 3; // Output dataformat
+  Resampling               resampling_alg  = 4; // Resampling algorithm to use for reprojection
+  GeoTransform             pix_to_crs      = 5;
+  string                   crs             = 6;
+  Size                     size            = 7;
+  FileFormat               format          = 8; // Format of the output data
 }
 
 /**
