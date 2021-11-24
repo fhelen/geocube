@@ -28,22 +28,20 @@ type CubeSlice struct {
 
 // SliceMeta info to provide direct access to raw images
 type SliceMeta struct {
-	Resampling     geocube.Resampling
-	RefDataMapping geocube.DataMapping
-	Datasets       []*internalImage.Dataset
+	Datasets []*internalImage.Dataset
 }
 
 // CubeInfo stores various information about the Cube
 type CubeInfo struct {
-	NbImages   int
-	NbDatasets int
+	NbImages      int
+	NbDatasets    int
+	Resampling    geocube.Resampling
+	RefDataFormat geocube.DataFormat
 }
 
 // ToProtobuf
 func (s *SliceMeta) ToProtobuf() *pb.DatasetMeta {
 	datasetMeta := &pb.DatasetMeta{
-		RefDformat:    s.RefDataMapping.DataFormat.ToProtobuf(),
-		ResamplingAlg: pb.Resampling(s.Resampling),
 		InternalsMeta: make([]*pb.InternalMeta, len(s.Datasets)),
 	}
 
@@ -64,17 +62,9 @@ func (s *SliceMeta) ToProtobuf() *pb.DatasetMeta {
 
 // NewSlideMetaFromProtobuf creates SliceMeta from protobuf
 func NewSlideMetaFromProtobuf(pbmeta *pb.DatasetMeta) *SliceMeta {
-	df := *geocube.NewDataFormatFromProtobuf(pbmeta.RefDformat)
 	s := &SliceMeta{
-		RefDataMapping: geocube.DataMapping{
-			DataFormat: df,
-			RangeExt:   df.Range,
-			Exponent:   1,
-		},
-		Resampling: geocube.Resampling(pbmeta.ResamplingAlg),
-		Datasets:   make([]*internalImage.Dataset, len(pbmeta.InternalsMeta)),
+		Datasets: make([]*internalImage.Dataset, len(pbmeta.InternalsMeta)),
 	}
-
 	// Populate the datasetMeta part of the header
 	for i, meta := range pbmeta.InternalsMeta {
 		s.Datasets[i] = &internalImage.Dataset{
@@ -93,8 +83,38 @@ func NewSlideMetaFromProtobuf(pbmeta *pb.DatasetMeta) *SliceMeta {
 
 // GetCubeFromDatasets implements GeocubeDownloaderService
 // panics if instancesID is empty
-func (svc *Service) GetCubeFromMetadatas(ctx context.Context, metadatas []SliceMeta, grecords [][]*geocube.Record, format string) (CubeInfo, <-chan CubeSlice, error) {
-	return CubeInfo{NbImages: 0, NbDatasets: 0}, nil, fmt.Errorf("not implemented error")
+func (svc *Service) GetCubeFromMetadatas(ctx context.Context, metadatas []SliceMeta, grecords [][]*geocube.Record,
+	respl geocube.Resampling, refDf geocube.DataFormat, crs *godal.SpatialRef, pixToCRS *affine.Affine, width, height int, format string) (CubeInfo, <-chan CubeSlice, error) {
+	var err error
+	var nbDs int
+	dsByRecord := make([][]*internalImage.Dataset, len(metadatas))
+	for i, element := range metadatas {
+		dsByRecord[i] = element.Datasets
+		nbDs += 1
+	}
+	outDesc := internalImage.GdalDatasetDescriptor{
+		PixToCRS:   pixToCRS,
+		Width:      width,
+		Height:     height,
+		Bands:      len(metadatas[0].Datasets[0].Bands),
+		Resampling: respl,
+		DataMapping: geocube.DataMapping{
+			DataFormat: refDf,
+			RangeExt:   refDf.Range,
+			Exponent:   1,
+		},
+		ValidPixPc: 0, // Only exclude empty image
+		Format:     format,
+	}
+	outDesc.WktCRS, err = crs.WKT()
+	if err != nil {
+		return CubeInfo{}, nil, fmt.Errorf("getCubeFromMetadatas.ToWKT: %w", err)
+	}
+	stream, err := svc.getCubeStream(ctx, dsByRecord, grecords, outDesc, false)
+	if err != nil {
+		return CubeInfo{}, nil, err
+	}
+	return CubeInfo{NbImages: len(dsByRecord), NbDatasets: nbDs}, stream, nil
 }
 
 // GetCubeFromRecords implements GeocubeService
@@ -135,7 +155,11 @@ func (svc *Service) GetCubeFromRecords(ctx context.Context, grecordsID [][]strin
 
 	// GetCube
 	stream, err := svc.getCubeStream(ctx, datasetsByRecords, grecords, outDesc, headersOnly)
-	return CubeInfo{NbImages: len(datasetsByRecords), NbDatasets: len(datasets)}, stream, err
+	return CubeInfo{NbImages: len(datasetsByRecords),
+		NbDatasets:    len(datasets),
+		Resampling:    outDesc.Resampling,
+		RefDataFormat: outDesc.DataMapping.DataFormat,
+	}, stream, err
 }
 
 // GetCubeFromFilters implements GeocubeService
@@ -168,7 +192,11 @@ func (svc *Service) GetCubeFromFilters(ctx context.Context, recordTags geocube.M
 
 	// GetCube
 	stream, err := svc.getCubeStream(ctx, datasetsByRecord, grecords, outDesc, headersOnly)
-	return CubeInfo{NbImages: len(datasetsByRecord), NbDatasets: len(datasets)}, stream, err
+	return CubeInfo{NbImages: len(datasetsByRecord),
+		NbDatasets:    len(datasets),
+		Resampling:    outDesc.Resampling,
+		RefDataFormat: outDesc.DataMapping.DataFormat,
+	}, stream, err
 }
 
 func (svc *Service) getCubePrepare(ctx context.Context, instancesID []string, crs *godal.SpatialRef, pixToCRS *affine.Affine, width, height int, format string) (internalImage.GdalDatasetDescriptor, *proj.GeographicShape, error) {
@@ -278,29 +306,26 @@ func (svc *Service) getCubeStream(ctx context.Context, datasetsByRecord [][]*int
 				Records:  records,
 				Metadata: map[string]string{},
 				DatasetsMeta: SliceMeta{
-					Resampling:     outDesc.Resampling,
-					RefDataMapping: outDesc.DataMapping,
-					Datasets:       datasetsByRecord[i]}}
+					Datasets: datasetsByRecord[i]}}
 		}
 		close(headersOut)
 
 		return headersOut, nil
 	}
-
 	// Create a job for each batch of datasets with the same record id and a result channel
 	var jobs []mergeDatasetJob
 	var unorderedSlices []chan CubeSlice
 	for i, datasets := range datasetsByRecord {
-		jobs = append(jobs, mergeDatasetJob{ID: len(jobs), Datasets: datasets, Records: grecords[i], OutDesc: &outDesc})
+		jobs = append(jobs, mergeDatasetJob{ID: len(jobs),
+			Datasets: datasets, Records: grecords[i],
+			OutDesc: &outDesc})
 		unorderedSlices = append(unorderedSlices, make(chan CubeSlice /** set ", 1" to release the worker as soon as it finishes */))
 	}
 
 	// Create a channel for returning the results in order
 	orderedSlices := make(chan CubeSlice)
-
 	// Order results
 	go orderResults(ctx, unorderedSlices, orderedSlices)
-
 	// Start workers
 	{
 		jobChan := make(chan mergeDatasetJob, len(jobs))
@@ -314,7 +339,6 @@ func (svc *Service) getCubeStream(ctx context.Context, datasetsByRecord [][]*int
 		}
 		close(jobChan)
 	}
-
 	return orderedSlices, nil
 }
 

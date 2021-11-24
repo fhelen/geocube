@@ -801,7 +801,6 @@ func (svc *Service) GetCube(req *pb.GetCubeRequest, stream pb.Geocube_GetCubeSer
 		if len(cubeInfo.groupedRecordsID) == 0 || len(cubeInfo.groupedRecordsID[0]) == 0 {
 			return newValidationError("At least one record must be provided")
 		}
-
 		info, slicesQueue, err = svc.gsvc.GetCubeFromRecords(ctx,
 			cubeInfo.groupedRecordsID,
 			cubeInfo.instancesID,
@@ -815,11 +814,12 @@ func (svc *Service) GetCube(req *pb.GetCubeRequest, stream pb.Geocube_GetCubeSer
 			return formatError("backend.%w", err)
 		}
 	}
-
 	// Return global header
 	if err := stream.Send(&pb.GetCubeResponse{Response: &pb.GetCubeResponse_GlobalHeader{GlobalHeader: &pb.GetCubeResponseHeader{
-		Count:      int64(info.NbImages),
-		NbDatasets: int64(info.NbDatasets),
+		Count:         int64(info.NbImages),
+		NbDatasets:    int64(info.NbDatasets),
+		ResamplingAlg: pb.Resampling(info.Resampling),
+		RefDformat:    info.RefDataFormat.ToProtobuf(),
 	}}}); err != nil {
 		return formatError("backend.GetCube.%w", err)
 	}
@@ -905,8 +905,8 @@ func getCubeCreateResponses(slice *internal.CubeSlice) (*pb.ImageHeader, []*pb.I
 	header := &pb.ImageHeader{
 		Records: make([]*pb.Record, len(slice.Records)),
 		DatasetMeta: &pb.DatasetMeta{
-			RefDformat:    slice.DatasetsMeta.RefDataMapping.DataFormat.ToProtobuf(),
-			ResamplingAlg: pb.Resampling(slice.DatasetsMeta.Resampling),
+			// RefDformat:    slice.DatasetsMeta.RefDataMapping.DataFormat.ToProtobuf(),
+			// ResamplingAlg: pb.Resampling(slice.DatasetsMeta.Resampling),
 			InternalsMeta: make([]*pb.InternalMeta, len(slice.DatasetsMeta.Datasets)),
 		},
 	}
