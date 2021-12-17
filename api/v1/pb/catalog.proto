@@ -90,6 +90,8 @@ message GetCubeResponseHeader{
   int64 nb_datasets = 2;
   DataFormat ref_dformat    = 3; // Output dataformat
   Resampling resampling_alg = 4; // Resampling algorithm to use for reprojection
+  GeoTransform geotransform = 5; // Geotransform used for mapping
+  string       crs          = 6;
 }
 
 /**
