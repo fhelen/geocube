@@ -98,13 +98,29 @@ func (svc *DownloaderService) DownloadCube(req *pb.GetCubeMetadataRequest, strea
 	if err != nil {
 		return formatError("backend.%w", err)
 	}
+	fmt.Println("DDDDDDD")
+	fmt.Println(req.PixToCrs)
+	fmt.Println("DDDDDDD")
 	if err := stream.Send(&pb.GetCubeMetadataResponse{Response: &pb.GetCubeMetadataResponse_GlobalHeader{GlobalHeader: &pb.GetCubeResponseHeader{
-		Count:      int64(info.NbImages),
-		NbDatasets: int64(info.NbDatasets),
+		Count:         int64(info.NbImages),
+		NbDatasets:    int64(info.NbDatasets),
+		ResamplingAlg: pb.Resampling(info.Resampling),
+		RefDformat:    info.RefDataFormat.ToProtobuf(),
+		Geotransform:  req.PixToCrs,
+		Crs:           req.Crs,
 	}}}); err != nil {
 		return formatError("backend.GetCube.%w", err)
 	}
 
+	// h := pb.GetCubeResponseHeader{
+	// 	Count:         int64(info.NbImages),
+	// 	NbDatasets:    int64(info.NbDatasets),
+	// 	ResamplingAlg: pb.Resampling(info.Resampling),
+	// 	RefDformat:    info.RefDataFormat.ToProtobuf(),
+	// 	Geotransform:  req.PixToCrs,
+	// 	Crs:           req.Crs,
+	// }
+	// fmt.Println("EEEEE", h)
 	log.Logger(ctx).Sugar().Infof("GetCube : %d images from %d datasets (%v)\n", info.NbImages, info.NbDatasets, time.Since(start))
 
 	n := 1
