@@ -757,7 +757,7 @@ func (svc *Service) prepareGetCube(req *pb.GetCubeRequest) (*cubeInfo, error) {
 // GetCube retrieves, rescale and reproject datasets and serves them as a cube
 func (svc *Service) GetCube(req *pb.GetCubeRequest, stream pb.Geocube_GetCubeServer) error {
 	start := time.Now()
-
+	fmt.Println("sss", start)
 	ctx, cancel := context.WithTimeout(stream.Context(), svc.maxConnectionAge*time.Second)
 	defer func() {
 		cancel()
@@ -820,10 +820,11 @@ func (svc *Service) GetCube(req *pb.GetCubeRequest, stream pb.Geocube_GetCubeSer
 		NbDatasets:    int64(info.NbDatasets),
 		ResamplingAlg: pb.Resampling(info.Resampling),
 		RefDformat:    info.RefDataFormat.ToProtobuf(),
+		Geotransform:  req.PixToCrs,
+		Crs:           req.Crs,
 	}}}); err != nil {
 		return formatError("backend.GetCube.%w", err)
 	}
-
 	if req.GetHeadersOnly() {
 		log.Logger(ctx).Sugar().Infof("GetCubeHeader : %d images from %d datasets (%v)\n", info.NbImages, info.NbDatasets, time.Since(start))
 	} else {
